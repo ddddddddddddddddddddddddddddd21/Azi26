@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מערכת אזימוט - חניך</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f7f8fa;--white:#fff;--ink:#1c2230;--muted:#6b7280;--border:#e2e5ea;--accent:#3b82f6;--accent-soft:#eff6ff;--accent-dark:#1d4ed8;--warn:#f59e0b;--danger:#ef4444;--radius:14px;--radius-sm:8px;--shadow:0 2px 16px rgba(0,0,0,0.07);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding:24px 16px 64px;}
+.wrap{max-width:680px;margin:0 auto;}
+.step{display:none;}.step.active{display:block;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.card{background:var(--white);border-radius:var(--radius);padding:36px 40px;box-shadow:var(--shadow);border:1px solid var(--border);}
+@media(max-width:520px){.card{padding:24px 20px;}}
+.step-label{font-size:.72rem;font-weight:600;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:8px;}
+h2{font-size:1.4rem;font-weight:800;color:var(--ink);margin-bottom:6px;}
+.subtitle{color:var(--muted);font-size:.95rem;line-height:1.6;margin-bottom:24px;}
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:.82rem;font-weight:600;color:var(--ink);margin-bottom:6px;}
+.field input,.field textarea{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'Heebo',sans-serif;font-size:1rem;color:var(--ink);background:var(--bg);outline:none;transition:border-color .2s,box-shadow .2s;}
+.field input:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,0.15);background:var(--white);}
+.field textarea{resize:vertical;min-height:120px;line-height:1.6;}
+.btn{display:block;width:100%;padding:16px;border:none;border-radius:var(--radius-sm);font-family:'Heebo',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:20px;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent-dark);transform:translateY(-1px);box-shadow:0 4px 14px rgba(59,130,246,0.35);}
+.btn-primary:disabled{background:#c5cdd8;cursor:not-allowed;transform:none;box-shadow:none;}
+.timer-block{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;gap:14px;}
+.timer-icon{font-size:1.4rem;}
+.timer-time{font-size:1.6rem;font-weight:700;color:var(--warn);font-variant-numeric:tabular-nums;line-height:1;}
+.timer-time.over{color:var(--danger);}
+.timer-note{font-size:.78rem;color:var(--muted);margin-top:2px;}
+.instr{background:var(--accent-soft);border-right:4px solid var(--accent);border-radius:var(--radius-sm);padding:16px 20px;font-size:.95rem;line-height:1.7;color:var(--ink);margin-bottom:20px;}
+.instr b{color:var(--accent-dark);}
+.scale-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px 0;}
+.scale-box{text-align:center;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 6px;}
+.scale-num{font-size:1.6rem;font-weight:900;color:var(--accent);line-height:1;}
+.scale-lbl{font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.3;}
+.q-header{margin-bottom:22px;}
+.q-hint{font-size:.75rem;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 12px;margin-bottom:12px;line-height:1.5;}
+.q-hint{font-size:.75rem;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 12px;margin-bottom:12px;line-height:1.5;}.q-text{font-size:1.15rem;font-weight:700;line-height:1.45;color:var(--ink);}
+.opt-list{display:flex;flex-direction:column;gap:8px;}
+.opt-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:13px 16px;transition:border-color .15s;}
+.opt-row.selected-row{border-color:var(--accent);background:var(--accent-soft);}
+.opt-text{font-size:.93rem;line-height:1.4;}
+.rank-btns{display:flex;gap:5px;}
+.rank-btn{width:36px;height:36px;border:1.5px solid var(--border);border-radius:6px;background:var(--white);font-family:'Heebo',sans-serif;font-size:.88rem;font-weight:700;color:var(--ink);cursor:pointer;transition:all .15s;}
+.rank-btn:hover:not(.used){border-color:var(--accent);color:var(--accent);}
+.rank-btn.selected{background:var(--accent);border-color:var(--accent);color:#fff;}
+.rank-btn.used{opacity:.3;cursor:not-allowed;pointer-events:none;}
+.hero-wrap{text-align:center;padding:48px 0 36px;}
+.hero-logo{font-size:clamp(3rem,12vw,5.5rem);font-weight:900;color:#0a0f1e;letter-spacing:-.02em;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,0.18);}
+.hero-logo span{color:var(--accent);}
+.finish-wrap{text-align:center;padding:48px 20px;}
+.finish-icon{font-size:4rem;margin-bottom:16px;}
+.finish-title{font-size:2rem;font-weight:900;color:var(--ink);margin-bottom:10px;}
+.finish-sub{font-size:1rem;color:var(--muted);line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="step active" id="step-1">
+  <div class="hero-wrap"><div class="hero-logo"><span>א</span>זימוט</div></div>
+  <div class="card">
+    <h2>כניסה לשאלון</h2>
+    <p class="subtitle">הכנס את שמך ואת קוד הכניסה שקיבלת</p>
+    <div class="field"><label>שם</label><input type="text" id="user-name" placeholder="ראשי תיבות (לדוגמה: י.י)" maxlength="10"></div>
+    <div class="field"><label>קוד כניסה</label><input type="text" id="user-code" placeholder="לדוגמה: ALFA01" maxlength="10" style="text-transform:uppercase;letter-spacing:.1em;font-weight:700;"></div>
+    <div id="code-error" style="background:#fff1f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;font-size:.88rem;color:#991b1b;margin-top:12px;display:none;"></div>
+    <button class="btn btn-primary" id="btn-step2" onclick="
+      const n=document.getElementById('user-name').value.trim();
+      const c=document.getElementById('user-code').value.trim();
+      const e=document.getElementById('code-error');
+      if(!n){e.textContent='נא להכניס שם';e.style.display='block';return;}
+      if(!c){e.textContent='נא להכניס קוד כניסה';e.style.display='block';return;}
+      validateStep2();
+    ">המשך</button>
+  </div>
+</div>
+
+<div class="step" id="step-2">
+  <div class="hero-wrap"><div class="hero-logo"><span>א</span>זימוט</div></div>
+  <div class="card">
+    <h2>ברוכים הבאים</h2>
+    <p class="subtitle">השאלון שלפניך נועד לסייע לפיקוד הקורס להכיר אותך טוב יותר, למפות את יכולותיך ולהתאים עבורך את תכנית הלימודים באופן מיטבי</p>
+    <button class="btn btn-primary" onclick="goStep(3)">המשך</button>
+  </div>
+</div>
+
+<div class="step" id="step-3">
+  <div class="card">
+    <h2>הוראות</h2>
+    <div class="instr" id="instr-text"></div>
+    <p style="font-size:.9rem;color:var(--muted);line-height:1.7;margin-bottom:16px;">
+      בכל היגד יופיעו 4 משפטים. עליך לתת לכל משפט מספר שונה:<br>
+      <b>1</b> = הכי מתחבר אליי &nbsp;·&nbsp; <b>2</b> = מתחבר למדי &nbsp;·&nbsp; <b>3</b> = מתחבר מעט &nbsp;·&nbsp; <b>4</b> = הכי פחות מתחבר<br>
+      <b>חובה לדרג את כל 4 המשפטים - כל מספר פעם אחת בלבד.</b>
+    </p>
+    <div class="scale-grid">
+      <div class="scale-box"><div class="scale-num">1</div><div class="scale-lbl">מתאר אותי מאוד</div></div>
+      <div class="scale-box"><div class="scale-num">2</div><div class="scale-lbl">מתאר אותי למדי</div></div>
+      <div class="scale-box"><div class="scale-num">3</div><div class="scale-lbl">מתאר אותי מעט</div></div>
+      <div class="scale-box"><div class="scale-num">4</div><div class="scale-lbl">כמעט לא מתאר</div></div>
+    </div>
+    <button class="btn btn-primary" id="btn-step3-next">הבנתי, נמשיך להצגה עצמית</button>
+  </div>
+</div>
+
+<div class="step" id="step-4">
+  <div class="card">
+    <h2>ספר לי בקצרה על עצמך</h2>
+    <p class="subtitle">יש לך 2 דק', ספר על עצמך בקצרה, אין נכון או לא נכון, פשוט ותמציתי.</p>
+    <div class="timer-block">
+      <div class="timer-icon">⏱</div>
+      <div>
+        <div class="timer-time" id="timer-2min">02:00</div>
+        <div class="timer-note" id="timer-2min-note">זמן שנותר</div>
+      </div>
+    </div>
+    <div class="field"><label>הצגה עצמית</label><textarea id="about-text" placeholder="כתוב כאן..."></textarea></div>
+    <button class="btn btn-primary" onclick="stop2MinAndGo()">סיום והמשך</button>
+  </div>
+</div>
+
+<div class="step" id="step-5">
+  <div class="card">
+    <div class="step-label">תרגול לפני השאלון</div>
+    <h2>ממשק הדירוג</h2>
+    <p class="subtitle">לפני שמתחילים, נתרגל. דרג את ארבע האפשרויות הבאות ב-1, 2, 3, 4.</p>
+    <div class="opt-list" id="example-area"></div>
+    <button class="btn btn-primary" id="btn-example-next" onclick="goStep(6)" disabled>הבנתי - נתחיל במבחן</button>
+  </div>
+</div>
+
+<div class="step" id="step-6">
+  <div class="card" style="text-align:center;">
+    <h2 style="font-size:2rem;margin-bottom:12px;">מוכנים?</h2>
+    <p class="subtitle" style="margin:0 auto 24px;max-width:420px;">לרשותכם 10 דקות. דרגו כל שורה בערכים 1, 2, 3, 4 - כאשר 1 מתאר אותך בצורה הטובה ביותר.</p>
+    <button class="btn btn-primary" style="max-width:280px;margin:0 auto;" onclick="startSurvey()">צאו לדרך!</button>
+  </div>
+</div>
+
+<div class="step" id="step-7">
+  <div class="card">
+    <div class="timer-block">
+      <div class="timer-icon">⏱</div>
+      <div>
+        <div class="timer-time" id="timer-survey">10:00</div>
+        <div class="timer-note">זמן נותר לשאלון</div>
+      </div>
+    </div>
+    <div class="q-header">
+      <div class="q-hint">דרג את <b>כל 4 המשפטים</b> מ-1 (הכי מתחבר אליי) עד 4 (הכי פחות) - כל מספר פעם אחת בלבד</div>
+      <div class="q-text" id="q-text"></div>
+    </div>
+    <div class="opt-list" id="q-opts"></div>
+    <button class="btn btn-primary" id="btn-next" onclick="processQuestion()" disabled>היגד הבא</button>
+  </div>
+</div>
+
+<div class="step" id="step-8">
+  <div class="card">
+    <div class="finish-wrap">
+      <div class="finish-icon">✅</div>
+      <div class="finish-title">תודה ובהצלחה!</div>
+      <div class="finish-sub">סיימת את השאלון בהצלחה.</div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+window.onerror = function(msg, src, line) {
+  const d = document.createElement('div');
+  d.style = 'position:fixed;top:0;left:0;right:0;background:#ef4444;color:white;padding:12px;font-size:13px;z-index:9999;';
+  d.textContent = 'Error: ' + msg + ' (line ' + line + ')';
+  document.body.appendChild(d);
+};
+const ENCRYPT_KEY = 'Admin123';
+const AUTOSAVE_KEY = 'azimuth_autosave';
+const SUPABASE_URL = 'https://guidzvgdseyjwowgheke.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1aWR6dmdkc2V5andvd2doZWtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjAxNzMsImV4cCI6MjA5MTk5NjE3M30.QR5mrIj9oenN9P202hbYpjwWFOQ4mtjnTI9Dvp0fHlw';
+const COURSE_ID = 'azimuth';
+
+const questions = [
+  { q: "מטרתי העיקרית היא:", opts: [{s:"P",t:"להיות במשרה עם עמדה"},{s:"A",t:"להיות הטוב ביותר בשטח שלי"},{s:"E",t:"להשיג הכרה לעבודתי"},{s:"I",t:"להרגיש ביטחון במקום עבודתי"}]},
+  { q: "אני נהנה/ית מעבודות:", opts: [{s:"P",t:"טכניות מוגדרות היטב"},{s:"A",t:"המאפשרות גיוונים"},{s:"E",t:"המאפשרות פעולה עצמאית"},{s:"I",t:"שאנשים מעורבים בהן"}]},
+  { q: "אני מצפה מאנשים שעובדים עבורי להיות:", opts: [{s:"P",t:"יעילים ומהירים"},{s:"A",t:"נאמנים ואחראים"},{s:"E",t:"בעלי יכולת גבוהה"},{s:"I",t:"פתוחים לרעיונות והצעות"}]},
+  { q: "בעבודתי אני מצפה להשיג:", opts: [{s:"P",t:"תוצאות מעשיות"},{s:"A",t:"את הפתרונות הטובים ביותר"},{s:"E",t:"גישות חדשות או רעיונות חדשים"},{s:"I",t:"אווירה טובה"}]},
+  { q: "דרך ההתקשרות הטובה ביותר שלי היא:", opts: [{s:"P",t:"באסיפה רשמית"},{s:"A",t:"בכתיבה"},{s:"E",t:"בקשר ישיר אחד על אחד"},{s:"I",t:"בשיחה קבוצתית"}]},
+  { q: "בתכנון שלי אני מדגיש/ה:", opts: [{s:"P",t:"בעיות בהווה"},{s:"A",t:"השגת מטרות"},{s:"E",t:"מטרות לעתיד"},{s:"I",t:"טיפוח קריירה של אנשים"}]},
+  { q: "בהתמודדות עם בעיה אני:", opts: [{s:"P",t:"מסתמך על גישות שהוכיחו את עצמן"},{s:"A",t:"מנתח בזהירות"},{s:"E",t:"מחפש גישות יצירתיות"},{s:"I",t:"מסתמך על הרגשה"}]},
+  { q: "בעת שימוש במידע אני מעדיף/ה:", opts: [{s:"P",t:"עובדות מוגדרות"},{s:"A",t:"מידע מדויק ושלם"},{s:"E",t:"כיסוי כללי של אפשרויות רבות"},{s:"I",t:"מידע מסוים שמובן בקלות"}]},
+  { q: "כאשר איני בטוח/ה מה לעשות אני:", opts: [{s:"P",t:"מחפש עובדות"},{s:"A",t:"משתהה לפני קבלת ההחלטה"},{s:"E",t:"מסתמך על אינטואיציה"},{s:"I",t:"חושב על פשרה אפשרית"}]},
+  { q: "אני משתדל/ת להימנע מ...", opts: [{s:"P",t:"ויכוחים ארוכים"},{s:"A",t:"לא לגמור עבודה"},{s:"E",t:"שימוש במספרים ונוסחאות"},{s:"I",t:"קונפליקט עם אחרים"}]},
+  { q: "אני טוב/ה במיוחד ב...", opts: [{s:"P",t:"זיכרון של תאריכים ועובדות"},{s:"A",t:"פתירת בעיות קשות"},{s:"E",t:"ראיית אפשרויות רבות"},{s:"I",t:"קשרים עם אחרים"}]},
+  { q: "כאשר זמן הוא גורם חשוב אני:", opts: [{s:"P",t:"מחליט/ה ופועל/ת במהירות"},{s:"A",t:"משתמש/ת בתוכנית וסדר עדיפויות"},{s:"E",t:"מסרב/ת להילחץ"},{s:"I",t:"מחפש/ת הדרכה ותמיכה"}]},
+  { q: "במצבים חברתיים אני בדרך כלל:", opts: [{s:"P",t:"מדבר/ת עם אחרים"},{s:"A",t:"חושב/ת על מה שנאמר"},{s:"E",t:"מתבונן במתרחש סביב"},{s:"I",t:"מקשיב/ה לשיחה"}]},
+  { q: "אני טוב בזיכרון:", opts: [{s:"P",t:"שמות אנשים"},{s:"A",t:"מקומות בהם נפגשנו"},{s:"E",t:"פני אנשים"},{s:"I",t:"טיפוסי אנשים"}]},
+  { q: "העבודה שאני עושה מאפשרת לי:", opts: [{s:"P",t:"כוח להשפיע על אחרים"},{s:"A",t:"אתגרים מעניינים"},{s:"E",t:"להשיג את מטרותיי האישיות"},{s:"I",t:"להיות מקובל על ידי הקבוצה"}]},
+  { q: "אני מסתדר/ת טוב עם אלו שהם:", opts: [{s:"P",t:"בעלי מרץ ותחרותיים"},{s:"A",t:"בעלי ביטחון עצמי"},{s:"E",t:"בעלי ראש פתוח"},{s:"I",t:"מנומסים ונותני אמון"}]},
+  { q: "כאשר אני תחת לחץ זמן:", opts: [{s:"P",t:"אני נתקף/ת בחרדה"},{s:"A",t:"זה עוזר לי להתרכז בבעיה"},{s:"E",t:"אני הופך/ת מתוסכל/ת מחוסר ההספק"},{s:"I",t:"אני נעשה/ית שכחן/ית"}]},
+  { q: "אחרים חושבים שאני:", opts: [{s:"P",t:"תוקפני/ת"},{s:"A",t:"בעל/ת משמעת עצמית"},{s:"E",t:"בעל/ת דמיון"},{s:"I",t:"תומך/ת ועוזר/ת"}]},
+  { q: "ההחלטות שלי בדרך כלל:", opts: [{s:"P",t:"מציאותיות וישירות"},{s:"A",t:"שיטתיות ופשוטות"},{s:"E",t:"כוללניות וגמישות"},{s:"I",t:"רגישות לצרכי אנשים"}]},
+  { q: "אינני אוהב:", opts: [{s:"P",t:"איבוד שליטה"},{s:"A",t:"עבודה משעממת"},{s:"E",t:"לציית ולעקוב אחרי חוקים"},{s:"I",t:"להיות דחוי/ה"}]}
+];
+
+let timerInt2, timerSurveyInt;
+let surveySeconds = 600;
+let currentQ = 0;
+let scores = {P:0,A:0,E:0,I:0};
+let logs = [];
+let qStartTime;
+let tempSels = {};
+let userName = '';
+let userCode = '';
+let testStartTime = null;
+let aboutTimedOut = false;
+let testStartTime = null;
+
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function validateStep2() {
+  const n = document.getElementById('user-name').value.trim();
+  const code = document.getElementById('user-code').value.trim().toUpperCase();
+  const errEl = document.getElementById('code-error');
+  const btn = document.getElementById('btn-step2');
+  if (!n) { errEl.textContent = 'נא להכניס שם'; errEl.style.display = 'block'; return; }
+  if (!code) { errEl.textContent = 'נא להכניס קוד כניסה'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'בודק קוד...'; errEl.style.display = 'none';
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/codes?code=eq.' + encodeURIComponent(code) + '&course_id=eq.' + encodeURIComponent(COURSE_ID) + '&used=eq.false&select=code',
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+    const data = await res.json();
+    if (!data || data.length === 0) {
+      errEl.textContent = 'קוד לא תקף או כבר שומש - אם יש בעיה פנה למפקד';
+      errEl.style.display = 'block'; btn.disabled = false; btn.textContent = 'המשך'; return;
+    }
+    await fetch(SUPABASE_URL + '/rest/v1/codes?code=eq.' + encodeURIComponent(code),
+      { method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } });
+  } catch(e) { console.warn('Code check failed, continuing offline:', e); }
+  userCode = code; userName = n;
+  document.getElementById('instr-text').innerHTML =
+    `שלום <b>${userName}</b>, השאלון נועד לסייע <b>לפיקוד הקורס</b> להכיר אותך טוב יותר<br>
+     אין תשובות נכונות או שגויות - ענה לפי מה שמאפיין אותך <b>באמת</b>`;
+  btn.disabled = false; btn.textContent = 'המשך';
+  goStep(2);
+}
+
+function start2MinTimer() {
+  let t = 120;
+  const disp = document.getElementById('timer-2min');
+  const note = document.getElementById('timer-2min-note');
+  timerInt2 = setInterval(() => {
+    t--;
+    if (t > 0) {
+      disp.textContent = Math.floor(t/60) + ':' + String(t%60).padStart(2,'0');
+    } else if (t === 0) {
+      disp.textContent = 'תם הזמן';
+      disp.classList.add('over');
+      if (note) note.textContent = 'אנא סיים, ממשיכים בעוד מס\' שניות אוטומטית...';
+    } else if (t === -20) {
+      clearInterval(timerInt2);
+      aboutTimedOut = true;
+      stop2MinAndGo();
+    }
+  }, 1000);
+}
+
+function stop2MinAndGo() {
+  clearInterval(timerInt2);
+  renderOpts('example-area', [{s:'X',t:'תפוז'},{s:'X',t:'בננה'},{s:'X',t:'תפוח'},{s:'X',t:'ענב'}], 'btn-example-next');
+  goStep(5);
+}
+
+function startSurvey() {
+  testStartTime = new Date();
+  for (let i = questions.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [questions[i],questions[j]]=[questions[j],questions[i]];
+  }
+  goStep(7);
+  // autosave every 30s
+  setInterval(autoSave, 30000);
+  const disp = document.getElementById('timer-survey');
+  timerSurveyInt = setInterval(() => {
+    surveySeconds--;
+    const abs = Math.abs(surveySeconds);
+    disp.textContent = (surveySeconds < 0 ? '-' : '') + Math.floor(abs/60) + ':' + String(abs%60).padStart(2,'0');
+    disp.classList.toggle('over', surveySeconds < 0);
+    autoSave();
+  }, 1000);
+  renderQ();
+}
+
+function autoSave() {
+  try {
+    const pid = userCode || 'unknown';
+    const snap = {
+      name: userName, pid,
+      about: document.getElementById('about-text').value || '',
+      scores, logs, currentQ, surveySeconds, aboutTimedOut,
+      testStartTime: testStartTime ? testStartTime.toISOString() : null,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(AUTOSAVE_KEY + '_' + pid, JSON.stringify(snap));
+  } catch(e) {}
+}
+
+function renderQ() {
+  const q = questions[currentQ];
+  tempSels = {};
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('btn-next').disabled = true;
+  document.getElementById('btn-next').textContent = currentQ === 19 ? 'סיום השאלון' : 'היגד הבא';
+  renderOpts('q-opts', q.opts, 'btn-next');
+  qStartTime = Date.now();
+}
+
+function renderOpts(areaId, opts, btnId) {
+  const area = document.getElementById(areaId);
+  area.innerHTML = '';
+  const sels = {};
+  const btn = document.getElementById(btnId);
+  if (btn) btn.disabled = true;
+  opts.forEach((opt, i) => {
+    const row = document.createElement('div');
+    row.className = 'opt-row';
+    row.id = `${areaId}-row-${i}`;
+    const txtDiv = document.createElement('div');
+    txtDiv.className = 'opt-text';
+    txtDiv.textContent = opt.t;
+    const rankDiv = document.createElement('div');
+    rankDiv.className = 'rank-btns';
+    [1,2,3,4].forEach((disp, di) => {
+      const val = [8,4,2,1][di];
+      const b = document.createElement('button');
+      b.className = 'rank-btn';
+      b.textContent = disp;
+      b.dataset.val = val;
+      b.onclick = () => pickVal(opt.s, val, i, areaId, btnId, sels, opts.length);
+      rankDiv.appendChild(b);
+    });
+    row.appendChild(txtDiv);
+    row.appendChild(rankDiv);
+    area.appendChild(row);
+  });
+}
+
+function pickVal(style, val, rowI, areaId, btnId, sels, total) {
+  if (sels[rowI] && sels[rowI].val === val) { delete sels[rowI]; }
+  else {
+    Object.keys(sels).forEach(k => { if (parseInt(k) !== rowI && sels[k].val === val) delete sels[k]; });
+    sels[rowI] = { style, val };
+  }
+  const rows = document.querySelectorAll(`#${areaId} .opt-row`);
+  const usedVals = Object.values(sels).map(x => x.val);
+  rows.forEach((row, ri) => {
+    row.classList.toggle('selected-row', sels[ri] !== undefined);
+    row.querySelectorAll('.rank-btn').forEach(b => {
+      const bv = parseInt(b.dataset.val);
+      const isOwn = sels[ri] && sels[ri].val === bv;
+      b.classList.toggle('selected', isOwn);
+      b.classList.toggle('used', !isOwn && usedVals.includes(bv));
+    });
+  });
+  const done = Object.keys(sels).length === total;
+  const btnEl = document.getElementById(btnId);
+  if (btnEl) btnEl.disabled = !done;
+  if (areaId === 'q-opts') tempSels = { ...sels };
+}
+
+
+
+function processQuestion() {
+  const topEntry = Object.values(tempSels).find(x => x.val === 8);
+  logs.push({ q: currentQ, time: (Date.now() - qStartTime)/1000, topS: topEntry ? topEntry.style : '?' });
+  Object.values(tempSels).forEach(sel => { if (sel.style !== 'X') scores[sel.style] += sel.val; });
+  currentQ++;
+  if (currentQ < 20) renderQ(); else finalize();
+}
+
+async async function finalize() {
+  clearInterval(timerSurveyInt);
+  const pid = userCode || 'unknown';
+  const now = new Date();
+
+  const payload = {
+    name: userName, pid,
+    date: now.toLocaleDateString('he-IL'),
+    time: now.toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit'}),
+    testStartTime: testStartTime ? testStartTime.toISOString() : now.toISOString(),
+    testEndTime: now.toISOString(),
+    about: document.getElementById('about-text').value || '',
+    testStartTime: testStartTime ? testStartTime.toISOString() : now.toISOString(),
+    testEndTime: now.toISOString(),
+    scores, logs, surveySeconds, aboutTimedOut, v: 2
+  };
+
+  // save to localStorage as final
+  try {
+    localStorage.setItem(AUTOSAVE_KEY + '_' + pid, JSON.stringify({...payload, complete: true}));
+    // also add to summary list
+    const summaryKey = 'azimuth_summary';
+    let summary = [];
+    try { summary = JSON.parse(localStorage.getItem(summaryKey) || '[]'); } catch(e) {}
+    // remove old entry for same pid
+    summary = summary.filter(r => r.pid !== pid);
+    // compute primary style label
+    const sorted = Object.entries(payload.scores).sort((a,b) => b[1]-a[1]);
+    const labelMap = {P:'תפוקתי',A:'מינהלן',E:'יזם',I:'מתכלל'};
+    const discMap = {P:'דומיננטי',E:'משפיע',I:'יציב',A:'קפדן'};
+    summary.push({
+      name: payload.name, pid: payload.pid,
+      date: payload.date, time: payload.time,
+      paei_primary: labelMap[sorted[0][0]],
+      paei_secondary: labelMap[sorted[1][0]],
+      disc: discMap[sorted[0][0]],
+      scores: payload.scores, complete: true
+    });
+    localStorage.setItem(summaryKey, JSON.stringify(summary));
+  } catch(e) {}
+
+  // הצפנה ושליחה ל-Supabase
+  let encrypted;
+  try {
+    encrypted = CryptoJS.AES.encrypt(JSON.stringify(payload), ENCRYPT_KEY).toString();
+  } catch(e) {
+    encrypted = btoa(encodeURIComponent(JSON.stringify(payload)));
+  }
+  try {
+    await fetch(SUPABASE_URL + '/rest/v1/results', {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ course_id: COURSE_ID, pid, data: encrypted })
+    });
+  } catch(e) {}
+  goStep(8);
+}
+
+document.getElementById('btn-step3-next').onclick = function() {
+  goStep(4);
+  start2MinTimer();
+};
+</script>
+</body>
+</html>
